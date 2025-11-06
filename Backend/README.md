@@ -111,13 +111,96 @@ curl -X POST http://localhost:3000/users/register \
   }'
 ```
 
+## Login endpoint — POST /users/login
+
+Purpose
+
+Authenticate an existing user and return a JWT token on successful login.
+
+HTTP
+
+- Method: POST
+- Path: /users/login
+- Headers:
+  - `Content-Type: application/json`
+
+Request body (JSON)
+
+Required shape:
+
+```json
+{
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+
+Field rules and validation:
+
+- `email` (required): must be a valid email address.
+- `password` (required): string, minimum 6 characters.
+
+Validation is performed using `express-validator` in `user.routes.js`.
+
+Behavior / Implementation details
+
+- The controller (`Backend/controllers/user.controller.js`) validates the request, fetches the user by email with the password selected (`.select('+password')`), and compares the provided password using the `comparePassword` instance method on the model.
+- If authentication succeeds the controller calls `user.generateAuthToken()` to create a JWT and responds with the token and user object.
+
+Responses and status codes
+
+- 200 OK
+  - Description: Authentication successful.
+  - Body: JSON with `token` (JWT string) and `user` (user object; password is not included by default).
+  - Example:
+
+```json
+{
+  "token": "eyJhbGciOiJI...",
+  "user": {
+    "_id": "64b3f...",
+    "fullname": { "firstname": "John", "lastname": "Doe" },
+    "email": "john@example.com",
+    "socketId": null,
+    "__v": 0
+  }
+}
+```
+
+- 400 Bad Request
+
+  - Description: Input validation failed (missing/invalid fields).
+  - Body: `{ "errors": [ ... ] }` (format from `express-validator`).
+
+- 401 Unauthorized
+  - Description: Invalid credentials (email not found or password mismatch).
+  - Example body:
+
+```json
+{ "message": "Invalid email or password" }
+```
+
+- 500 Internal Server Error
+  - Description: Unexpected server error while authenticating the user.
+
+Example curl
+
+```bash
+curl -X POST http://localhost:3000/users/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "secret123"
+  }'
+```
+
 ## Notes and recommendations
 
 - Ensure `process.env.JWT_SECRET` is set in your environment (used by `user.generateAuthToken`).
 - Passwords are hashed with bcrypt before storage; the raw password is never stored.
-- Consider returning a 201 Created instead of 200 OK for resource creation (optional enhancement).
+- Consider returning a 201 Created instead of 200 OK for resource creation (optional enhancement) for the register endpoint.
 - Add explicit handling for duplicate email errors in the service/controller to return a 409 status and a clear message.
 
 ---
 
-File: `Backend/README.md` — documentation for the `/users/register` endpoint.
+File: `Backend/README.md` — documentation for the `/users/register` and `/users/login` endpoints.
