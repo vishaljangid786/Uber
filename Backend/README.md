@@ -194,6 +194,109 @@ curl -X POST http://localhost:3000/users/login \
   }'
 ```
 
+## Profile endpoint — GET /users/profile
+
+Purpose
+
+Retrieve the authenticated user's profile information. This is a protected endpoint that requires a valid JWT token.
+
+HTTP
+
+- Method: GET
+- Path: /users/profile
+- Headers:
+  - `Authorization: Bearer <token>` (Required: Valid JWT token from login/register)
+  - `Cookie: token=<token>` (Alternative: token can also be sent via cookie)
+
+Behavior / Implementation details
+
+- The endpoint is protected by `authMiddleware.authUser` which validates the JWT token.
+- Token can be provided either in the Authorization header or via cookie.
+- Returns the authenticated user's profile information (password excluded).
+
+Responses and status codes
+
+- 200 OK
+  - Description: Successfully retrieved user profile.
+  - Body: User object (password field excluded).
+  - Example:
+
+```json
+{
+  "_id": "64b3f...",
+  "fullname": {
+    "firstname": "John",
+    "lastname": "Doe"
+  },
+  "email": "john@example.com",
+  "socketId": null,
+  "__v": 0
+}
+```
+
+- 401 Unauthorized
+  - Description: No token provided or invalid/expired token.
+  - Example body:
+
+```json
+{ "message": "Authentication required" }
+```
+
+Example curl
+
+```bash
+curl -X GET http://localhost:3000/users/profile \
+  -H "Authorization: Bearer eyJhbGciOiJI..."
+```
+
+## Logout endpoint — GET /users/logout
+
+Purpose
+
+Log out the current user by invalidating their JWT token and clearing the authentication cookie.
+
+HTTP
+
+- Method: GET
+- Path: /users/logout
+- Headers:
+  - `Authorization: Bearer <token>` (Required: Valid JWT token from login/register)
+  - `Cookie: token=<token>` (Alternative: token can also be sent via cookie)
+
+Behavior / Implementation details
+
+- The endpoint is protected by `authMiddleware.authUser` which validates the JWT token.
+- Clears the authentication cookie if present.
+- Adds the current token to a blacklist to prevent its reuse.
+- The blacklisted token is stored in `blacklistTokenModel`.
+
+Responses and status codes
+
+- 200 OK
+  - Description: Successfully logged out.
+  - Body: Success message.
+  - Example:
+
+```json
+{ "message": "Logged out successfully" }
+```
+
+- 401 Unauthorized
+  - Description: No token provided or invalid/expired token.
+  - Example body:
+
+```json
+{ "message": "Authentication required" }
+```
+
+Example curl
+
+```bash
+curl -X GET http://localhost:3000/users/logout \
+  -H "Authorization: Bearer eyJhbGciOiJI..." \
+  -b "token=eyJhbGciOiJI..."
+```
+
 ## Notes and recommendations
 
 - Ensure `process.env.JWT_SECRET` is set in your environment (used by `user.generateAuthToken`).
