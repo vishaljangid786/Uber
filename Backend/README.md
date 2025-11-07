@@ -306,4 +306,228 @@ curl -X GET http://localhost:3000/users/logout \
 
 ---
 
-File: `Backend/README.md` — documentation for the `/users/register` and `/users/login` endpoints.
+# Captain Endpoints Documentation
+
+This section describes the endpoints for captain management (registration, authentication, and profile management).
+
+## Register Captain — POST /captains/register
+
+Purpose
+
+Register a new captain with vehicle details. The endpoint validates input, hashes the password, creates a captain record, and returns a JWT token for authentication.
+
+HTTP
+
+- Method: POST
+- Path: /captains/register
+- Headers:
+  - `Content-Type: application/json`
+
+Request body (JSON)
+
+Required shape:
+
+```json
+{
+  "fullname": {
+    "firstname": "John",
+    "lastname": "Doe"
+  },
+  "email": "john@example.com",
+  "password": "secret123",
+  "vehicle": {
+    "color": "black",
+    "plate": "ABC123",
+    "capacity": 4,
+    "vehicleType": "car"
+  }
+}
+```
+
+Field rules and validation:
+
+- `fullname.firstname` (required): string, minimum 3 characters
+- `fullname.lastname` (optional): string
+- `email` (required): must be a valid email address
+- `password` (required): string, minimum 6 characters
+- `vehicle.color` (required): string, minimum 3 characters
+- `vehicle.plate` (required): string, minimum 3 characters
+- `vehicle.capacity` (required): integer, minimum 1
+- `vehicle.vehicleType` (required): enum ["car", "motorcycle", "auto"]
+
+## Login Captain — POST /captains/login
+
+Purpose
+
+Authenticate an existing captain and return a JWT token.
+
+HTTP
+
+- Method: POST
+- Path: /captains/login
+- Headers:
+  - `Content-Type: application/json`
+
+Request body (JSON)
+
+```json
+{
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+
+Field rules and validation:
+
+- `email` (required): must be a valid email address
+- `password` (required): string, minimum 6 characters
+
+Responses and status codes
+
+- 200 OK
+  - Description: Authentication successful
+  - Body: JSON with `token` and `captain` object
+  - Example:
+
+```json
+{
+  "token": "eyJhbGciOiJI...",
+  "captain": {
+    "_id": "64b3f...",
+    "fullname": {
+      "firstname": "John",
+      "lastname": "Doe"
+    },
+    "email": "john@example.com",
+    "vehicle": {
+      "color": "black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    },
+    "__v": 0
+  }
+}
+```
+
+- 400 Bad Request
+  - Description: Input validation failed
+- 401 Unauthorized
+  - Description: Invalid credentials
+  - Example: `{ "message": "Invalid email or password" }`
+
+## Captain Profile — GET /captains/profile
+
+Purpose
+
+Retrieve the authenticated captain's profile information. Protected endpoint requiring valid JWT token.
+
+HTTP
+
+- Method: GET
+- Path: /captains/profile
+- Headers:
+  - `Authorization: Bearer <token>` (Required: Valid JWT token)
+  - `Cookie: token=<token>` (Alternative: token can be sent via cookie)
+
+Behavior
+
+- Protected by `authMiddleware.authCaptain`
+- Returns captain profile with vehicle details (password excluded)
+
+Responses and status codes
+
+- 200 OK
+  - Description: Profile retrieved successfully
+  - Example:
+
+```json
+{
+  "_id": "64b3f...",
+  "fullname": {
+    "firstname": "John",
+    "lastname": "Doe"
+  },
+  "email": "john@example.com",
+  "vehicle": {
+    "color": "black",
+    "plate": "ABC123",
+    "capacity": 4,
+    "vehicleType": "car"
+  },
+  "__v": 0
+}
+```
+
+- 401 Unauthorized
+  - When token is missing or invalid
+  - Example: `{ "message": "Authentication required" }`
+
+## Captain Logout — GET /captains/logout
+
+Purpose
+
+Log out the current captain by invalidating their JWT token and clearing the auth cookie.
+
+HTTP
+
+- Method: GET
+- Path: /captains/logout
+- Headers:
+  - `Authorization: Bearer <token>` (Required: Valid JWT token)
+  - `Cookie: token=<token>` (Alternative)
+
+Behavior
+
+- Protected by `authMiddleware.authCaptain`
+- Clears auth cookie if present
+- Blacklists the current token
+- Similar to user logout but specific to captain authentication
+
+Responses and status codes
+
+- 200 OK
+  - Description: Successfully logged out
+  - Example: `{ "message": "Logged out successfully" }`
+- 401 Unauthorized
+  - When token is missing or invalid
+  - Example: `{ "message": "Authentication required" }`
+
+Example curl commands:
+
+```bash
+# Register
+curl -X POST http://localhost:3000/captains/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullname": { "firstname": "John", "lastname": "Doe" },
+    "email": "john@example.com",
+    "password": "secret123",
+    "vehicle": {
+      "color": "black",
+      "plate": "ABC123",
+      "capacity": 4,
+      "vehicleType": "car"
+    }
+  }'
+
+# Login
+curl -X POST http://localhost:3000/captains/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "secret123"
+  }'
+
+# Get Profile
+curl -X GET http://localhost:3000/captains/profile \
+  -H "Authorization: Bearer eyJhbGciOiJI..."
+
+# Logout
+curl -X GET http://localhost:3000/captains/logout \
+  -H "Authorization: Bearer eyJhbGciOiJI..."
+```
+
+---
+
+File: `Backend/README.md` — documentation for User and Captain endpoints.
